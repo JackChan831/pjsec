@@ -1,0 +1,160 @@
+import os
+import csv
+
+class Expense:
+    def __init__(self, name, amount, payment):
+        self.name = name
+        self.amount = amount
+        self.payment = payment
+
+def create_new_expense():
+    current_balance = read_balance()
+
+    while True:
+        try:
+            value_spent = float(input("Please input the value you spent: "))
+            break
+        except ValueError:
+            print("Invalid input. Please enter a numeric value.")
+
+    name_of_spending = input("Please input the name of the spending: ")
+    payment_method = input("Please input the payment method: ")
+
+    new_expense = Expense(name_of_spending, value_spent, payment_method)
+
+    file_exists = os.path.isfile("record.csv")
+
+    with open("record.csv", "a", newline="") as record:
+        fieldnames = ["name", "value", "payment"]
+        writer = csv.DictWriter(record, fieldnames)
+        if not file_exists:
+            writer.writeheader()
+        writer.writerow({
+            "name": new_expense.name,
+            "value": new_expense.amount,
+            "payment": new_expense.payment
+        })
+
+    print("New record created successfully.")
+
+    updated_balance = current_balance - value_spent
+    with open("balance.txt", "w") as balance:
+        balance.write(str(updated_balance))
+    read_balance()
+
+def add_income():
+    current_balance = read_balance()  # print the current balance first
+
+    while True:
+        try:
+            income = float(input("Please enter the income amount to add: "))
+            if income < 0:
+                print("Income cannot be negative. Please enter a positive amount.")
+                continue
+            break
+        except ValueError:
+            print("Invalid input. Please enter a numeric value.")
+
+    updated_balance = current_balance + income
+
+    with open("balance.txt", "w") as balance_file:
+        balance_file.write(str(updated_balance))
+    print(f"Income added. Your updated balance is {updated_balance}")
+
+def read_balance():
+    try:
+        with open("balance.txt", "r") as balancefile:
+            balance = float(balancefile.read())
+    except FileNotFoundError:
+        print("Balance file not found. Setting balance to 0.")
+        balance = 0.0
+        with open("balance.txt", "w") as balance_file:
+            balance_file.write(str(balance))
+    except ValueError:
+        print("Invalid balance value in the file. Resetting balance to 0.")
+        balance = 0.0
+        with open("balance.txt", "w") as balance_file:
+            balance_file.write(str(balance))
+
+    print(f"Your current balance is {balance}")
+    return balance
+
+def view():
+    try:
+        with open("record.csv", mode="r") as csvfile:
+            csv_reader = csv.reader(csvfile)
+            for row in csv_reader:
+                print(row)
+    except FileNotFoundError:
+        print("There are no records. Please add a record first")
+
+def delete():
+    deleterec = input("Please enter the record name you want to delete: ")
+    records = []
+
+    with open("record.csv", "r") as csvfile:
+        reader = csv.DictReader(csvfile)
+        records = [line for line in reader if line["name"] != deleterec]
+
+    with open("record.csv", "w") as csvfile:
+        fieldnames = ["name", "value", "balance", "payment"]
+        writer = csv.DictWriter(csvfile, fieldnames)
+        writer.writeheader()
+        writer.writerows(records)
+
+    print("The record was successfully deleted")
+
+def most_expensive_spending():
+    try:
+        with open("record.csv", "r") as csvfile:
+            reader = csv.DictReader(csvfile)
+            max_spending = 0
+            max_spending_names = []
+            for row in reader:
+                if float(row["value"]) > max_spending:
+                    max_spending = float(row["value"])
+                    max_spending_names = [row["name"]]
+                elif float(row["value"]) == max_spending:
+                    max_spending_names.append(row["name"])
+            if max_spending_names:
+                print(f"The most expensive spendings are {', '.join(max_spending_names)} with an amount of {max_spending}")
+            else:
+                print("No spendings found.")
+    except FileNotFoundError:
+        print("There are no records. Please add a record first")
+
+def exit_program():
+    exit()
+
+# Matching commands to functions
+commands = {
+    "1": add_income,
+    "2": create_new_expense,
+    "3": read_balance,
+    "4": view,
+    "5": delete,
+    "6": most_expensive_spending,
+    "7": exit_program,
+}
+
+while True:
+    command = input(
+        "Please enter the number of the function you want to use:\n"
+        "1. Add income\n"
+        "2. Create new expense\n"
+        "3. Read balance\n"
+        "4. View\n"
+        "5. Delete\n"
+        "6. Find most expensive spending\n"
+        "7. Exit\n"
+    )
+
+    # Check if the command is valid 1234567
+    if command in commands:
+        commands[command.lower()]()
+
+        
+        if command == "7":
+            break
+    else:
+        print("Invalid command. Please try again.")
